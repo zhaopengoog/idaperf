@@ -10,21 +10,21 @@ INSN_OFFSET       = -1
 import csv
 from collections import namedtuple
 
-Sym = namedtuple("Sym", "name addr ctr_tot ctr_top")
+Sym = namedtuple("Sym", "name addr stack_record_count stack_count")
 
 syminfo = []
 with open(idaapi.ask_file(False, "*.csv", "Select perf csv dump"), "r") as f:
     reader = csv.reader(f)
-    for _, ctr_tot, ctr_top, name in reader:
+    for _, stack_record_count, stack_count, name in reader:
         sym, offs = name.split('+')
         addr = idaapi.get_name_ea(BADADDR, sym)
         if addr == BADADDR:
             print("Skipping unknown symbol: {}".format(sym))
             continue
         addr += int(offs, 16)
-        syminfo.append(Sym(name, addr, int(ctr_tot), int(ctr_top)))
+        syminfo.append(Sym(name, addr, int(stack_record_count), int(stack_count)))
 
-total_samples = sum(x.ctr_top for x in syminfo)
+total_samples = sum(x.stack_count for x in syminfo)
 
 def split_color(x):
     return x & 0xFF, (x & 0xFF00) >> 8, (x & 0xFF0000) >> 16
@@ -43,7 +43,7 @@ def blend_colors(a, b, w):
     ))
 
 for sym in syminfo:
-    weight = float(sym.ctr_top) / total_samples
+    weight = float(sym.stack_count) / total_samples
     if weight < COLOR_MIN_WEIGHT:
         continue
 
